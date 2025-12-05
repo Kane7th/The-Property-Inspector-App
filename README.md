@@ -1,7 +1,6 @@
 # The Property Inspector App 🏠🔍
 
-> Full‑stack property inspection app 
-Bckend in Flask (Python) + frontend in React (Vite) with JWT auth, Cloudinary image upload, and PDF export.
+> Full‑stack property inspection app with a Backend in Flask (Python) + frontend in React (Vite) with JWT auth, Cloudinary image upload, and PDF export.
 
 ## 🔎 What it does
 
@@ -11,8 +10,8 @@ The Property Inspector App allows users to:
 * Create new property inspections, save address + notes + photos.
 * Upload photos to Cloudinary for storage.
 * View a gallery of all inspections (address, notes, photos).
-* Download each inspection as a PDF — including address, notes, and photos.
-* Edit or delete existing inspections (CRUD) — only for the owner (JWT-protected).
+* Download each inspection as a PDF including address, notes, and photos.
+* Edit or delete existing inspections (CRUD) only for the owner (JWT-protected).
 
 It’s basically a lean MVP — perfect for property managers, inspectors, or landlords who want a simple way to log and export property inspections.
 
