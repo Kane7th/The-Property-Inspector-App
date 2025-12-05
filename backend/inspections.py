@@ -11,6 +11,26 @@ import requests
 inspections_bp = Blueprint("inspections", __name__, url_prefix="/inspections")
 
 
+@inspections_bp.route("/<int:id>", methods=["GET"])
+@jwt_required()
+def get_inspection(id):
+    user_id = int(get_jwt_identity())
+    inspection = Inspection.query.get_or_404(id)
+
+    if inspection.user_id != user_id:
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    photos = InspectionPhoto.query.filter_by(inspection_id=id).all()
+    photo_urls = [p.url for p in photos if p.url]
+
+    return jsonify({
+        "id": inspection.id,
+        "address": inspection.address,
+        "notes": inspection.notes,
+        "photos": photo_urls
+    })
+
+
 @inspections_bp.route("", methods=["GET"])
 @jwt_required()
 def list_inspections():
@@ -19,12 +39,12 @@ def list_inspections():
     data = []
     for i in inspections:
         photos = InspectionPhoto.query.filter_by(inspection_id=i.id).all()
-        photo_urls = [p.url for p in photos if p.url]
+        photo_data = [{"url": p.url, "label": p.label} for p in photos if p.url]
         data.append({
             "id": i.id,
             "address": i.address,
             "notes": i.notes,
-            "photos": photo_urls  # send all uploaded images
+            "photos": photo_data
         })
     return jsonify(data)
 
@@ -36,6 +56,9 @@ def create_inspection():
     data = request.json
     address = data.get("address")
     notes = data.get("notes")
+    if not address:
+        return jsonify({"msg": "Address is required"}), 400
+
     inspection = Inspection(address=address, notes=notes, user_id=user_id)
     db.session.add(inspection)
     db.session.commit()
@@ -55,7 +78,6 @@ def update_inspection(id):
     inspection.address = data.get("address", inspection.address)
     inspection.notes = data.get("notes", inspection.notes)
     db.session.commit()
-
     return jsonify({"msg": "Inspection updated"})
 
 
@@ -68,11 +90,9 @@ def delete_inspection(id):
     if inspection.user_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
 
-    # delete associated photos
     InspectionPhoto.query.filter_by(inspection_id=id).delete()
     db.session.delete(inspection)
     db.session.commit()
-
     return jsonify({"msg": "Inspection deleted"})
 
 
@@ -130,19 +150,25 @@ def download_pdf(id):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     c.setFont("Helvetica", 12)
-    c.drawString(50, 750, f"Inspection ID: {str(inspection.id)}")
-    c.drawString(50, 730, f"Address: {str(inspection.address or '')}")
-    c.drawString(50, 710, f"Notes: {str(inspection.notes or '')}")
+    c.drawString(50, 750, f"Inspection ID: {inspection.id}")
+    c.drawString(50, 730, f"Address: {inspection.address or ''}")
+    c.drawString(50, 710, f"Notes: {inspection.notes or ''}")
 
     y = 680
     for photo in photos:
         try:
             response = requests.get(photo.url)
             img = ImageReader(BytesIO(response.content))
-            c.drawImage(img, 50, y - 100, width=200, height=100)  # scale images
+            c.drawImage(img, 50, y - 100, width=200, height=100)
+            if photo.label:
+                c.drawString(260, y - 50, f"Label: {photo.label}")
             y -= 120
-        except Exception as e:
-            c.drawString(50, y, f"Failed to load image: {str(photo.url)}")
+            if y < 50:  # new page if needed
+                c.showPage()
+                c.setFont("Helvetica", 12)
+                y = 750
+        except Exception:
+            c.drawString(50, y, f"Failed to load image: {photo.url}")
             y -= 20
 
     c.showPage()

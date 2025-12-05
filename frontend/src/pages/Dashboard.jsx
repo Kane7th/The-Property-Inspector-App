@@ -5,7 +5,23 @@ import { removeToken, getToken } from "../utils/auth.js";
 
 export default function Dashboard() {
   const [inspections, setInspections] = useState([]);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
+
+  const toast = (msg, type = "info") => {
+    const el = document.createElement("div");
+    el.textContent = msg;
+    el.style.position = "fixed";
+    el.style.bottom = "20px";
+    el.style.right = "20px";
+    el.style.background = type === "error" ? "#e84118" : "#44bd32";
+    el.style.color = "#fff";
+    el.style.padding = "10px 20px";
+    el.style.borderRadius = "5px";
+    el.style.zIndex = 9999;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  };
 
   const fetchInspections = async () => {
     try {
@@ -15,7 +31,7 @@ export default function Dashboard() {
       setInspections(res.data || []);
     } catch (err) {
       console.error("Fetch inspections failed:", err);
-      alert("Failed to fetch inspections");
+      toast("Failed to fetch inspections", "error");
     }
   };
 
@@ -43,9 +59,10 @@ export default function Dashboard() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      toast("PDF downloaded successfully!");
     } catch (err) {
       console.error("Download PDF failed:", err);
-      alert("Failed to download PDF");
+      toast("Failed to download PDF", "error");
     }
   };
 
@@ -56,15 +73,22 @@ export default function Dashboard() {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setInspections((prev) => prev.filter((i) => i.id !== id));
+      toast("Inspection deleted!");
     } catch (err) {
       console.error("Delete inspection failed:", err);
-      alert(err.response?.data?.msg || "Failed to delete inspection");
+      toast(err.response?.data?.msg || "Failed to delete inspection", "error");
     }
   };
 
+  const filteredInspections = inspections.filter(
+    (i) =>
+      i.address?.toLowerCase().includes(search.toLowerCase()) ||
+      i.notes?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div style={{ padding: 30, fontFamily: "Arial, sans-serif", background: "#f5f6fa", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h1 style={{ color: "#2f3640" }}>Property Dashboard</h1>
         <div>
           <Link to="/new-inspection" style={{ marginRight: 15, textDecoration: "none", background: "#0097e6", color: "#fff", padding: "10px 20px", borderRadius: 5 }}>New Inspection</Link>
@@ -72,17 +96,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {inspections.length === 0 ? (
-        <p style={{ color: "#718093" }}>No inspections yet. Click "New Inspection" to create one.</p>
+      <input
+        type="text"
+        placeholder="Search by address or notes..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ width: "100%", padding: 10, marginBottom: 20, borderRadius: 5, border: "1px solid #ccc" }}
+      />
+
+      {filteredInspections.length === 0 ? (
+        <p style={{ color: "#718093" }}>No inspections found.</p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-          {inspections.map((i) => (
+          {filteredInspections.map((i) => (
             <div key={i.id} style={{ background: "#fff", borderRadius: 10, padding: 20, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
               <h2 style={{ margin: 0, color: "#2f3640" }}>{i.address}</h2>
               <p style={{ color: "#718093", marginTop: 10 }}>{i.notes}</p>
               {i.photos && i.photos.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
-                  {i.photos.map((url, idx) => <img key={idx} src={url} alt="inspection" style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 5 }} />)}
+                  {i.photos.map((photo, idx) => (
+                    <div key={idx} style={{ textAlign: "center" }}>
+                      <img src={photo.url || photo} alt="inspection" style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 5 }} />
+                      {photo.label && <p style={{ margin: 0, fontSize: 12 }}>{photo.label}</p>}
+                    </div>
+                  ))}
                 </div>
               )}
               <button onClick={() => handleDownloadPDF(i.id)} style={{ display: "block", marginTop: 15, textAlign: "center", textDecoration: "none", background: "#44bd32", color: "#fff", padding: "10px 0", borderRadius: 5, fontWeight: "bold", width: "100%", cursor: "pointer" }}>Download PDF</button>

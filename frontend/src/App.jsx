@@ -30,6 +30,15 @@ export default function App() {
           </PrivateRoute>
         }
       />
+      {/* Added route for editing inspections */}
+      <Route
+        path="/edit-inspection/:id"
+        element={
+          <PrivateRoute>
+            <NewInspection />
+          </PrivateRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );
