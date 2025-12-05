@@ -1,6 +1,7 @@
 # The Property Inspector App 🏠🔍
 
-> Full‑stack property inspection app — backend in Flask (Python) + frontend in React (Vite) with JWT auth, Cloudinary image upload, and PDF export.
+> Full‑stack property inspection app 
+Bckend in Flask (Python) + frontend in React (Vite) with JWT auth, Cloudinary image upload, and PDF export.
 
 ## 🔎 What it does
 
