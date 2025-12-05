@@ -1,26 +1,25 @@
 from flask import Flask
-from .extensions import db, jwt, cors
-from config import Config
-from .auth_routes import auth_bp
-from .inspection_routes import inspection_bp
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # or your DB
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+CORS(app)
 
+# Link SQLAlchemy instance to app
+from backend.models import db  # import db from your models file
+db.init_app(app)
 
-    db.init_app(app)
-    jwt.init_app(app)
-    cors.init_app(app)
+# Blueprints
+from backend.auth import auth_bp
+from backend.inspections import inspections_bp
 
+app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(inspections_bp, url_prefix="/inspections")
 
-    with app.app_context():
+if __name__ == "__main__":
+    with app.app_context():  # ensure db can access app context
         db.create_all()
-
-
-    app.register_blueprint(auth_bp, url_prefix="/auth")
-    app.register_blueprint(inspection_bp, url_prefix="/inspection")
-
-
-    return app
+    app.run(debug=True)
